@@ -41,11 +41,13 @@
     };
 
     const msalInstance = new msal.PublicClientApplication(msalConfig);
+    let idToken = null;
     let userEmail = null;
 
     document.getElementById("loginBtn").onclick = async () => {
       try {
         const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+        idToken = loginResponse.idToken;
         userEmail = loginResponse.account.username;
         document.getElementById("aggiesBtn").disabled = false;
         document.getElementById("longhornsBtn").disabled = false;
@@ -56,7 +58,7 @@
     };
 
     async function vote(team) {
-      if (!userEmail) {
+      if (!idToken) {
         alert("Please sign in first!");
         return;
       }
@@ -64,7 +66,7 @@
         const res = await fetch(API_URL + "/vote", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ team, email: userEmail })
+          body: JSON.stringify({ team, idToken })
         });
         const data = await res.json();
         updateResultsWithData(data);
