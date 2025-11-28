@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Aggies vs Longhorns Vote</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- MSAL.js for Microsoft login -->
+  <script src="https://alcdn.msauth.net/browser/2.32.0/js/msal-browser.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
     h1 { margin-bottom: 10px; }
@@ -14,8 +16,11 @@
 </head>
 <body>
   <h1>Vote for Your Team!</h1>
-  <button onclick="vote('aggies')">Aggies</button>
-  <button onclick="vote('longhorns')">Longhorns</button>
+
+  <!-- Microsoft Sign-In -->
+  <button id="loginBtn">Sign in with Microsoft</button>
+  <button onclick="vote('aggies')" disabled id="aggiesBtn">Aggies</button>
+  <button onclick="vote('longhorns')" disabled id="longhornsBtn">Longhorns</button>
 
   <div class="results">
     <p id="aggies">Aggies: 0</p>
@@ -26,14 +31,43 @@
   <script>
     const API_URL = "https://d1-template.agoodman.workers.dev";
 
-    async function vote(team) {
+    // MSAL configuration with your IDs
+    const msalConfig = {
+      auth: {
+        clientId: "abd10e97-bf92-4d97-b7de-0fdadecca2fb", // your Client ID
+        authority: "https://login.microsoftonline.com/facc5b7e-ab8c-4461-8e04-dd929747429f", // your Tenant ID
+        redirectUri: "https://agoodman-prog.github.io/Aggies-Longhorns-Vote-/" // your GitHub Pages URL
+      }
+    };
+
+    const msalInstance = new msal.PublicClientApplication(msalConfig);
+    let userEmail = null;
+
+    document.getElementById("loginBtn").onclick = async () => {
       try {
-        await fetch(API_URL + "/vote", {
+        const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+        userEmail = loginResponse.account.username;
+        document.getElementById("aggiesBtn").disabled = false;
+        document.getElementById("longhornsBtn").disabled = false;
+        document.getElementById("status").textContent = "Signed in as " + userEmail;
+      } catch (err) {
+        document.getElementById("status").textContent = "Login failed: " + err;
+      }
+    };
+
+    async function vote(team) {
+      if (!userEmail) {
+        alert("Please sign in first!");
+        return;
+      }
+      try {
+        const res = await fetch(API_URL + "/vote", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ team })
+          body: JSON.stringify({ team, email: userEmail })
         });
-        updateResults();
+        const data = await res.json();
+        updateResultsWithData(data);
       } catch (err) {
         document.getElementById("status").textContent = "Vote failed — check connection.";
       }
@@ -43,12 +77,16 @@
       try {
         const res = await fetch(API_URL + "/results", { cache: "no-store" });
         const data = await res.json();
-        document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
-        document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
+        updateResultsWithData(data);
         document.getElementById("status").textContent = "Live";
       } catch (err) {
         document.getElementById("status").textContent = "Offline — retrying…";
       }
+    }
+
+    function updateResultsWithData(data) {
+      document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
+      document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
     }
 
     updateResults();
