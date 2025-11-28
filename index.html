@@ -10,8 +10,29 @@
     body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
     h1 { margin-bottom: 10px; }
     button { margin: 10px; padding: 12px 20px; font-size: 18px; border-radius: 6px; cursor: pointer; }
-    .results { margin-top: 20px; font-size: 20px; }
-    .status { margin-top: 10px; font-size: 14px; opacity: 0.7; }
+    .results { display: flex; justify-content: center; gap: 40px; margin-top: 30px; }
+    .team-card {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 12px;
+      width: 200px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .team-card h2 { margin: 0; }
+    .bar {
+      background: #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 20px;
+      margin-top: 10px;
+    }
+    .bar div {
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+    .aggies-card .bar div { background: #800000; } /* Aggies maroon */
+    .longhorns-card .bar div { background: #ff6600; } /* Longhorns orange */
+    .status { margin-top: 20px; font-size: 14px; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -23,20 +44,28 @@
   <button onclick="vote('longhorns')" disabled id="longhornsBtn">Longhorns</button>
 
   <div class="results">
-    <p id="aggies">Aggies: 0</p>
-    <p id="longhorns">Longhorns: 0</p>
+    <div class="team-card aggies-card">
+      <h2>Aggies</h2>
+      <p id="aggies">0</p>
+      <div class="bar"><div id="aggiesBar"></div></div>
+    </div>
+    <div class="team-card longhorns-card">
+      <h2>Longhorns</h2>
+      <p id="longhorns">0</p>
+      <div class="bar"><div id="longhornsBar"></div></div>
+    </div>
   </div>
+
   <div class="status" id="status">Connecting…</div>
 
   <script>
     const API_URL = "https://d1-template.agoodman.workers.dev";
 
-    // MSAL configuration with your IDs
     const msalConfig = {
       auth: {
-        clientId: "abd10e97-bf92-4d97-b7de-0fdadecca2fb", // your Client ID
-        authority: "https://login.microsoftonline.com/facc5b7e-ab8c-4461-8e04-dd929747429f", // your Tenant ID
-        redirectUri: "https://agoodman-prog.github.io/Aggies-Longhorns-Vote-/" // your GitHub Pages URL
+        clientId: "abd10e97-bf92-4d97-b7de-0fdadecca2fb",
+        authority: "https://login.microsoftonline.com/facc5b7e-ab8c-4461-8e04-dd929747429f",
+        redirectUri: "https://agoodman-prog.github.io/Aggies-Longhorns-Vote-/"
       }
     };
 
@@ -44,7 +73,6 @@
     let idToken = null;
     let userEmail = null;
 
-    // Handle login
     document.getElementById("loginBtn").onclick = async () => {
       try {
         const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
@@ -58,12 +86,8 @@
       }
     };
 
-    // Send vote to Worker
     async function vote(team) {
-      if (!idToken) {
-        alert("Please sign in first!");
-        return;
-      }
+      if (!idToken) { alert("Please sign in first!"); return; }
       try {
         const res = await fetch(API_URL + "/vote", {
           method: "POST",
@@ -77,7 +101,6 @@
       }
     }
 
-    // Fetch results from Worker
     async function updateResults() {
       try {
         const res = await fetch(API_URL + "/results", { cache: "no-store" });
@@ -89,13 +112,21 @@
       }
     }
 
-    // Update UI with results
     function updateResultsWithData(data) {
-      document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
-      document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
+      const aggiesVotes = data.aggies ?? 0;
+      const longhornsVotes = data.longhorns ?? 0;
+      const total = aggiesVotes + longhornsVotes;
+
+      document.getElementById("aggies").textContent = aggiesVotes;
+      document.getElementById("longhorns").textContent = longhornsVotes;
+
+      const aggiesPercent = total ? (aggiesVotes / total) * 100 : 0;
+      const longhornsPercent = total ? (longhornsVotes / total) * 100 : 0;
+
+      document.getElementById("aggiesBar").style.width = aggiesPercent + "%";
+      document.getElementById("longhornsBar").style.width = longhornsPercent + "%";
     }
 
-    // Initial load + refresh every 5 seconds
     updateResults();
     setInterval(updateResults, 5000);
   </script>
