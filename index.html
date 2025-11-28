@@ -44,6 +44,7 @@
     let idToken = null;
     let userEmail = null;
 
+    // Handle login
     document.getElementById("loginBtn").onclick = async () => {
       try {
         const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
@@ -57,6 +58,7 @@
       }
     };
 
+    // Send vote to Worker
     async function vote(team) {
       if (!idToken) {
         alert("Please sign in first!");
@@ -75,6 +77,7 @@
       }
     }
 
+    // Fetch results from Worker
     async function updateResults() {
       try {
         const res = await fetch(API_URL + "/results", { cache: "no-store" });
@@ -86,13 +89,15 @@
       }
     }
 
+    // Update UI with results
     function updateResultsWithData(data) {
       document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
       document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
     }
 
+    // Initial load + refresh every 5 seconds
     updateResults();
-    setInterval(updateResults, 5000); // refresh every 5 seconds
+    setInterval(updateResults, 5000);
   </script>
 </body>
 </html>
