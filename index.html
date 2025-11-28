@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
   <title>Aggies vs Longhorns Vote</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-    button { margin: 10px; padding: 15px 25px; font-size: 18px; }
-    h1 { color: #333; }
+    body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+    h1 { margin-bottom: 10px; }
+    button { margin: 10px; padding: 12px 20px; font-size: 18px; border-radius: 6px; cursor: pointer; }
+    .results { margin-top: 20px; font-size: 20px; }
     .status { margin-top: 10px; font-size: 14px; opacity: 0.7; }
   </style>
 </head>
@@ -16,25 +17,14 @@
   <button onclick="vote('aggies')">Aggies</button>
   <button onclick="vote('longhorns')">Longhorns</button>
 
-  <h2>Results:</h2>
-  <p id="aggies">Aggies: 0</p>
-  <p id="longhorns">Longhorns: 0</p>
+  <div class="results">
+    <p id="aggies">Aggies: 0</p>
+    <p id="longhorns">Longhorns: 0</p>
+  </div>
   <div class="status" id="status">Connecting…</div>
 
   <script>
-    const API_URL = "https://aggies-longhorns-vote.onrender.com";
-
-    async function updateResults() {
-      try {
-        const res = await fetch(API_URL + "/results", { cache: "no-store" });
-        const data = await res.json();
-        document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
-        document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
-        document.getElementById("status").textContent = "Live";
-      } catch {
-        document.getElementById("status").textContent = "Offline — retrying…";
-      }
-    }
+    const API_URL = "https://d1-template.agoodman.workers.dev";
 
     async function vote(team) {
       try {
@@ -43,14 +33,26 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ team })
         });
-        await updateResults();
-      } catch {
+        updateResults();
+      } catch (err) {
         document.getElementById("status").textContent = "Vote failed — check connection.";
       }
     }
 
+    async function updateResults() {
+      try {
+        const res = await fetch(API_URL + "/results", { cache: "no-store" });
+        const data = await res.json();
+        document.getElementById("aggies").textContent = "Aggies: " + (data.aggies ?? 0);
+        document.getElementById("longhorns").textContent = "Longhorns: " + (data.longhorns ?? 0);
+        document.getElementById("status").textContent = "Live";
+      } catch (err) {
+        document.getElementById("status").textContent = "Offline — retrying…";
+      }
+    }
+
     updateResults();
-    setInterval(updateResults, 5000);
+    setInterval(updateResults, 5000); // refresh every 5 seconds
   </script>
 </body>
 </html>
